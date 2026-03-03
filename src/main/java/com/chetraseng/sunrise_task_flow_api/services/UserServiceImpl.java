@@ -3,15 +3,14 @@ package com.chetraseng.sunrise_task_flow_api.services;
 import com.chetraseng.sunrise_task_flow_api.dto.UserInfoDto;
 import com.chetraseng.sunrise_task_flow_api.mapper.UserMapper;
 import com.chetraseng.sunrise_task_flow_api.model.UserModel;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    private final UserMapper userMapper;
+  private final UserMapper userMapper;
 
   private List<UserModel> users =
       List.of(
@@ -21,8 +20,6 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public List<UserInfoDto> getAllUsers() {
-    return users.stream()
-        .map(userMapper::toUserDto)
-        .toList();
+    return users.stream().map(userMapper::toUserDto).toList();
   }
 }

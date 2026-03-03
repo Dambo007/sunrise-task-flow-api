@@ -8,13 +8,12 @@ import org.springframework.web.client.RestTemplate;
 @SpringBootApplication
 public class SunriseTaskFlowApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SunriseTaskFlowApiApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(SunriseTaskFlowApiApplication.class, args);
+  }
 
-	@Bean
-	RestTemplate restTemplate() {
-		return new RestTemplate();
-	}
-
+  @Bean
+  RestTemplate restTemplate() {
+    return new RestTemplate();
+  }
 }
