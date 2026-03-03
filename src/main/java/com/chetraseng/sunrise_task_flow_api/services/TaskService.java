@@ -15,4 +15,6 @@ public interface TaskService {
   TaskResponse complete(Long id);
 
   void delete(Long id);
+
+  List<TaskResponse> filterTask(Boolean completed, String title);
 }

@@ -4,8 +4,10 @@ import com.chetraseng.sunrise_task_flow_api.dto.TaskResponse;
 import com.chetraseng.sunrise_task_flow_api.exception.ResourceNotFoundException;
 import com.chetraseng.sunrise_task_flow_api.mapper.TaskMapper;
 import com.chetraseng.sunrise_task_flow_api.model.TaskModel;
-import com.chetraseng.sunrise_task_flow_api.repository.TaskRepository;
+import com.chetraseng.sunrise_task_flow_api.repository.LegacyTaskRepository;
 import java.util.List;
+
+import com.chetraseng.sunrise_task_flow_api.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -59,8 +61,18 @@ public class TaskServiceImpl implements TaskService {
 
   @Override
   public void delete(Long id) {
-    if (!taskRepository.delete(id)) {
-      throw new ResourceNotFoundException("Task not found with id: " + id);
+
+    if (!taskRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Task not found");
     }
+
+    taskRepository.deleteById(id);
+  }
+
+  @Override
+  public List<TaskResponse> filterTask(Boolean completed, String title) {
+    return taskRepository.findAllByCompletedAndTitleContainingIgnoreCase(completed, title).stream()
+        .map(taskMapper::toTaskResponse)
+        .toList();
   }
 }
