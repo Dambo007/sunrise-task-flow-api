@@ -2,6 +2,7 @@ package com.chetraseng.sunrise_task_flow_api.model;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,4 +27,9 @@ public class TaskModel {
 
   @CreationTimestamp
   private LocalDateTime createdAt;
+
+  // Owning side
+  @ManyToOne
+  @JoinColumn(name = "project_id")
+  private ProjectModel project;
 }

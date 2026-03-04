@@ -2,6 +2,9 @@ package com.chetraseng.sunrise_task_flow_api.controllers;
 
 import com.chetraseng.sunrise_task_flow_api.dto.TaskRequest;
 import com.chetraseng.sunrise_task_flow_api.dto.TaskResponse;
+import com.chetraseng.sunrise_task_flow_api.dto.TaskSummary;
+import com.chetraseng.sunrise_task_flow_api.model.TaskModel;
+import com.chetraseng.sunrise_task_flow_api.repository.TaskRepository;
 import com.chetraseng.sunrise_task_flow_api.services.TaskService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/tasks")
 public class TaskController {
   private final TaskService taskService;
+  private final TaskRepository taskRepository;
 
   @GetMapping
   public List<TaskResponse> getAllTask(@RequestParam(required = false) Boolean completed) {
@@ -52,5 +56,25 @@ public class TaskController {
   @GetMapping("/filter")
   public List<TaskResponse> filterTasks(@RequestParam Boolean completed, @RequestParam String title) {
     return taskService.filterTask(completed, title);
+  }
+
+  @GetMapping("/test")
+  public List<TaskModel> queryTasks() {
+    return taskRepository.findAllByIncompleteOrderByCreatedAtDesc();
+  }
+
+  @GetMapping("/search")
+  public List<TaskModel> searchTasks(String keyword, Boolean completed) {
+    return taskRepository.search(keyword, completed);
+  }
+
+  @GetMapping("/project")
+  public List<TaskModel> searchTasks(String projectName) {
+    return taskRepository.findByProjectName(projectName);
+  }
+
+  @GetMapping("/native-test")
+  public List<TaskSummary> testNativeQuery(Long id) {
+    return taskRepository.findSummariesByProject(id);
   }
 }
