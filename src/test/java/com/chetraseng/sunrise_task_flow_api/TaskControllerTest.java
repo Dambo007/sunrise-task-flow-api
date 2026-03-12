@@ -1,5 +1,7 @@
 package com.chetraseng.sunrise_task_flow_api;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,181 +19,266 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TaskControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    private static final String BASE_URL = "/api/tasks";
+  private static final String BASE_URL = "/api/tasks";
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+  // ═════════════════════════════════════════════════════════════════════════
+  // Exercise 1: Task CRUD
+  // ═════════════════════════════════════════════════════════════════════════
 
-    private void createTask(String title, String description) throws Exception {
-        mockMvc.perform(post(BASE_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"title":"%s","description":"%s"}
-                        """.formatted(title, description)));
-    }
-
-    // ── GET all ───────────────────────────────────────────────────────────────
+  @Nested
+  @DisplayName("Exercise 1: Task CRUD")
+  class TaskCrud {
 
     @Test
-    void getAllTasks_initially_returnsEmptyList() throws Exception {
-        mockMvc.perform(get(BASE_URL))
-                .andExpect(status().isOk())
-                .andExpect(content().json("[]"));
+    @DisplayName("GET /api/tasks → returns all 12 seeded tasks")
+    void getAllTasks_returns12Tasks() throws Exception {
+      mockMvc
+          .perform(get(BASE_URL))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$", hasSize(12)));
     }
 
     @Test
-    void getAllTasks_afterCreatingTwo_returnsBothTasks() throws Exception {
-        createTask("Task One", "First task");
-        createTask("Task Two", "Second task");
-
-        mockMvc.perform(get(BASE_URL))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].title", containsInAnyOrder("Task One", "Task Two")));
+    @DisplayName("GET /api/tasks → response includes status, priority, labelNames, commentCount")
+    void getAllTasks_responseHasNewFields() throws Exception {
+      mockMvc
+          .perform(get(BASE_URL))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$[0].status").exists())
+          .andExpect(jsonPath("$[0].priority").exists())
+          .andExpect(jsonPath("$[0].labelNames").exists())
+          .andExpect(jsonPath("$[0].commentCount").isNumber());
     }
 
-    // ── POST ──────────────────────────────────────────────────────────────────
-
     @Test
-    void createTask_validRequest_returns201WithBody() throws Exception {
-        mockMvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"Learn Spring Boot","description":"Complete the course"}
-                                """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.title").value("Learn Spring Boot"))
-                .andExpect(jsonPath("$.description").value("Complete the course"))
-                .andExpect(jsonPath("$.completed").value(false))
-                .andExpect(jsonPath("$.createdAt").exists());
-    }
-
-    // ── GET by ID ─────────────────────────────────────────────────────────────
-
-    @Test
+    @DisplayName("GET /api/tasks/{id} → returns task by ID with correct fields")
     void getTaskById_existingTask_returns200() throws Exception {
-        createTask("My Task", "Some description");
-
-        mockMvc.perform(get(BASE_URL + "/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.title").value("My Task"));
+      mockMvc
+          .perform(get(BASE_URL + "/1"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(1))
+          .andExpect(jsonPath("$.title").value("Design login page UI"))
+          .andExpect(jsonPath("$.status").value("DONE"))
+          .andExpect(jsonPath("$.priority").value("HIGH"));
     }
 
     @Test
-    void getTaskById_nonExistingId_returns404() throws Exception {
-        mockMvc.perform(get(BASE_URL + "/9999"))
-                .andExpect(status().isNotFound());
-    }
-
-    // ── PUT ───────────────────────────────────────────────────────────────────
-
-    @Test
-    void updateTask_existingTask_returns200WithUpdatedFields() throws Exception {
-        createTask("Original Title", "Original description");
-
-        mockMvc.perform(put(BASE_URL + "/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"Updated Title","description":"Updated description"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Updated Title"))
-                .andExpect(jsonPath("$.description").value("Updated description"));
+    @DisplayName("GET /api/tasks/{id} → 404 for non-existing task")
+    void getTaskById_nonExisting_returns404() throws Exception {
+      mockMvc.perform(get(BASE_URL + "/9999")).andExpect(status().isNotFound());
     }
 
     @Test
-    void updateTask_nonExistingId_returns404() throws Exception {
-        mockMvc.perform(put(BASE_URL + "/9999")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"Ghost","description":"does not exist"}
-                                """))
-                .andExpect(status().isNotFound());
-    }
-
-    // ── PATCH complete ────────────────────────────────────────────────────────
-
-    @Test
-    void completeTask_existingTask_returns200AndCompletedIsTrue() throws Exception {
-        createTask("Task to complete", "Do this");
-
-        mockMvc.perform(patch(BASE_URL + "/1/complete"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.completed").value(true));
+    @DisplayName("POST /api/tasks → creates task with 201")
+    void createTask_returns201() throws Exception {
+      mockMvc
+          .perform(
+              post(BASE_URL)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      """
+                                    {"title":"New Task","description":"A new task","priority":"HIGH","status":"TODO"}
+                                    """))
+          .andExpect(status().isCreated())
+          .andExpect(jsonPath("$.id").exists())
+          .andExpect(jsonPath("$.title").value("New Task"))
+          .andExpect(jsonPath("$.priority").value("HIGH"))
+          .andExpect(jsonPath("$.status").value("TODO"));
     }
 
     @Test
-    void completeTask_nonExistingId_returns404() throws Exception {
-        mockMvc.perform(patch(BASE_URL + "/9999/complete"))
-                .andExpect(status().isNotFound());
+    @DisplayName("PUT /api/tasks/{id} → updates existing task")
+    void updateTask_existingTask_returns200() throws Exception {
+      mockMvc
+          .perform(
+              put(BASE_URL + "/1")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      """
+                                    {"title":"Updated Title","description":"Updated desc"}
+                                    """))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.title").value("Updated Title"))
+          .andExpect(jsonPath("$.description").value("Updated desc"));
     }
 
-    // ── DELETE ────────────────────────────────────────────────────────────────
+    @Test
+    @DisplayName("PUT /api/tasks/{id} → 404 for non-existing task")
+    void updateTask_nonExisting_returns404() throws Exception {
+      mockMvc
+          .perform(
+              put(BASE_URL + "/9999")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      """
+                                    {"title":"Ghost","description":"does not exist"}
+                                    """))
+          .andExpect(status().isNotFound());
+    }
 
     @Test
+    @DisplayName("DELETE /api/tasks/{id} → deletes with 204")
     void deleteTask_existingTask_returns204() throws Exception {
-        createTask("Task to delete", "Will be gone");
-
-        mockMvc.perform(delete(BASE_URL + "/1"))
-                .andExpect(status().isNoContent());
+      mockMvc.perform(delete(BASE_URL + "/1")).andExpect(status().isNoContent());
     }
 
     @Test
-    void deleteTask_existingTask_isNoLongerRetrievable() throws Exception {
-        createTask("Task to delete", "Will be gone");
+    @DisplayName("DELETE /api/tasks/{id} → 404 for non-existing task")
+    void deleteTask_nonExisting_returns404() throws Exception {
+      mockMvc.perform(delete(BASE_URL + "/9999")).andExpect(status().isNotFound());
+    }
+  }
 
-        mockMvc.perform(delete(BASE_URL + "/1"));
+  // ═════════════════════════════════════════════════════════════════════════
+  // Exercise 3: Custom @Query Endpoint
+  // ═════════════════════════════════════════════════════════════════════════
 
-        mockMvc.perform(get(BASE_URL + "/1"))
-                .andExpect(status().isNotFound());
+  @Nested
+  @DisplayName("Exercise 3: Custom Query Endpoint")
+  class CustomQueries {
+
+    @Test
+    @DisplayName("GET /api/tasks/overdue → returns 3 overdue tasks (not DONE)")
+    void getOverdueTasks_returns3() throws Exception {
+      // Overdue = dueDate before today AND status != DONE
+      // Tasks 7 (TODO, due-5d), 10 (IN_PROGRESS, due-2d), 12 (TODO, due-7d)
+      mockMvc
+          .perform(get(BASE_URL + "/overdue"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$", hasSize(3)))
+          .andExpect(jsonPath("$[*].status", not(hasItem("DONE"))));
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // Exercise 4: Specifications + Pagination
+  // ═════════════════════════════════════════════════════════════════════════
+
+  @Nested
+  @DisplayName("Exercise 4: Filter + Pagination")
+  class FilterAndPagination {
+
+    @Test
+    @DisplayName("GET /api/tasks/filter?status=TODO&page=0&size=5 → paginated TODO tasks")
+    void filterByStatus_todo_returnsPaginated() throws Exception {
+      mockMvc
+          .perform(
+              get(BASE_URL + "/filter")
+                  .param("status", "TODO")
+                  .param("page", "0")
+                  .param("size", "5"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data").isArray())
+          .andExpect(jsonPath("$.pagination").exists())
+          .andExpect(jsonPath("$.pagination.total").value(5))
+          .andExpect(jsonPath("$.data", hasSize(5)));
     }
 
     @Test
-    void deleteTask_nonExistingId_returns404() throws Exception {
-        mockMvc.perform(delete(BASE_URL + "/9999"))
-                .andExpect(status().isNotFound());
-    }
-
-    // ── Filter by completed ───────────────────────────────────────────────────
-
-    @Test
-    void getAllTasks_filterCompletedTrue_returnsOnlyCompletedTasks() throws Exception {
-        createTask("Pending task", "Not done yet");
-        createTask("Done task", "Already finished");
-        mockMvc.perform(patch(BASE_URL + "/2/complete"));
-
-        mockMvc.perform(get(BASE_URL + "?completed=true"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title").value("Done task"))
-                .andExpect(jsonPath("$[0].completed").value(true));
+    @DisplayName("GET /api/tasks/filter?priority=URGENT → filters by priority")
+    void filterByPriority_urgent_returnsUrgentTasks() throws Exception {
+      mockMvc
+          .perform(
+              get(BASE_URL + "/filter")
+                  .param("priority", "URGENT")
+                  .param("page", "0")
+                  .param("size", "10"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data", hasSize(2)))
+          .andExpect(jsonPath("$.pagination.total").value(2));
     }
 
     @Test
-    void getAllTasks_filterCompletedFalse_returnsOnlyPendingTasks() throws Exception {
-        createTask("Pending task", "Not done yet");
-        createTask("Done task", "Already finished");
-        mockMvc.perform(patch(BASE_URL + "/2/complete"));
-
-        mockMvc.perform(get(BASE_URL + "?completed=false"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title").value("Pending task"))
-                .andExpect(jsonPath("$[0].completed").value(false));
+    @DisplayName("GET /api/tasks/filter?title=login → filters by title keyword")
+    void filterByTitle_login_returnsMatchingTasks() throws Exception {
+      mockMvc
+          .perform(
+              get(BASE_URL + "/filter")
+                  .param("title", "login")
+                  .param("page", "0")
+                  .param("size", "10"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))));
     }
 
     @Test
-    void getAllTasks_noFilter_returnsAllTasks() throws Exception {
-        createTask("Pending task", "Not done yet");
-        createTask("Done task", "Already finished");
-        mockMvc.perform(patch(BASE_URL + "/2/complete"));
-
-        mockMvc.perform(get(BASE_URL))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
+    @DisplayName("GET /api/tasks/filter?projectId=1 → filters by project")
+    void filterByProjectId_returns4Tasks() throws Exception {
+      mockMvc
+          .perform(
+              get(BASE_URL + "/filter")
+                  .param("projectId", "1")
+                  .param("page", "0")
+                  .param("size", "10"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data", hasSize(4)))
+          .andExpect(jsonPath("$.pagination.total").value(4));
     }
+
+    @Test
+    @DisplayName("GET /api/tasks/filter → no filters returns all 12 tasks")
+    void filterNoParams_returnsAll() throws Exception {
+      mockMvc
+          .perform(get(BASE_URL + "/filter").param("page", "0").param("size", "20"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.data", hasSize(12)))
+          .andExpect(jsonPath("$.pagination.total").value(12));
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // Exercise 5: Label Management on Tasks
+  // ═════════════════════════════════════════════════════════════════════════
+
+  @Nested
+  @DisplayName("Exercise 5: Task Label Management")
+  class TaskLabels {
+
+    @Test
+    @DisplayName("PATCH /api/tasks/{id}/status?status=DONE → updates task status")
+    void updateStatus_toDone_returns200() throws Exception {
+      mockMvc
+          .perform(patch(BASE_URL + "/4/status").param("status", "DONE"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.status").value("DONE"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/tasks/{id}/status → 404 for non-existing task")
+    void updateStatus_nonExisting_returns404() throws Exception {
+      mockMvc
+          .perform(patch(BASE_URL + "/9999/status").param("status", "DONE"))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /api/tasks/{taskId}/labels/{labelId} → adds label to task")
+    void addLabel_toTask_returns200() throws Exception {
+      // task 11 (SEO optimization) has label: documentation
+      // Add "bug" label (id=1)
+      mockMvc
+          .perform(post(BASE_URL + "/11/labels/1"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.labelNames", hasItem("bug")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/tasks/{taskId}/labels/{labelId} → removes label from task")
+    void removeLabel_fromTask_returns200() throws Exception {
+      // task 1 has labels: frontend (id=5), feature (id=2)
+      // Remove "frontend" label (id=5)
+      mockMvc
+          .perform(delete(BASE_URL + "/1/labels/5"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.labelNames", not(hasItem("frontend"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/tasks/{taskId}/labels/{labelId} → 404 for non-existing task")
+    void addLabel_nonExistingTask_returns404() throws Exception {
+      mockMvc.perform(post(BASE_URL + "/9999/labels/1")).andExpect(status().isNotFound());
+    }
+  }
 }
